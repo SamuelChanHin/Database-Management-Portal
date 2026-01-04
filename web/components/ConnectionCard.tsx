@@ -1,0 +1,161 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ConnectionConfig, testConnection } from "@/lib/api";
+import {
+  Database,
+  Trash2,
+  TestTube,
+  Download,
+  Upload,
+  ArrowRightLeft,
+} from "lucide-react";
+
+interface ConnectionCardProps {
+  connection: ConnectionConfig;
+  onDelete: (id: string) => void;
+  onTest: (connection: ConnectionConfig) => void;
+  onBackup: (connection: ConnectionConfig) => void;
+  onRestore: (connection: ConnectionConfig) => void;
+  onMigrateFrom: (connection: ConnectionConfig) => void;
+}
+
+export function ConnectionCard({
+  connection,
+  onDelete,
+  onTest,
+  onBackup,
+  onRestore,
+  onMigrateFrom,
+}: ConnectionCardProps) {
+  const [health, setHealth] = useState<{
+    ok: boolean;
+    version?: string;
+    latency?: number;
+  } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async () => {
+    setTesting(true);
+    try {
+      const result = await testConnection(connection);
+      setHealth(result);
+      onTest(connection);
+    } catch (error) {
+      setHealth({ ok: false });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "postgres":
+        return "bg-blue-500";
+      case "mysql":
+        return "bg-orange-500";
+      case "sqlite":
+        return "bg-green-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  return (
+    <Card className="relative">
+      <div
+        className={`absolute top-0 left-0 w-1 h-full rounded-l-lg ${getTypeColor(
+          connection.type
+        )}`}
+      />
+
+      <CardHeader className="pl-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            <div>
+              <CardTitle>{connection.name}</CardTitle>
+              <CardDescription className="mt-1">
+                {connection.type.toUpperCase()} • {connection.database}
+                {connection.host && ` • ${connection.host}`}
+              </CardDescription>
+            </div>
+          </div>
+
+          {health !== null && (
+            <div
+              className={`h-3 w-3 rounded-full ${
+                health.ok ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {health && health.ok && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Version:</span> {health.version} •
+            <span className="font-medium"> Latency:</span> {health.latency}ms
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleTest}
+            disabled={testing}
+          >
+            <TestTube className="h-4 w-4 mr-1" />
+            Test
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onBackup(connection)}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Backup
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onRestore(connection)}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            Restore
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onMigrateFrom(connection)}
+          >
+            <ArrowRightLeft className="h-4 w-4 mr-1" />
+            Migrate
+          </Button>
+
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => onDelete(connection.id!)}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Delete
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
