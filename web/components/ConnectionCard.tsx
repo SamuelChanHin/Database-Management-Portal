@@ -17,11 +17,13 @@ import {
   Download,
   Upload,
   ArrowRightLeft,
+  Edit,
 } from "lucide-react";
 
 interface ConnectionCardProps {
   connection: ConnectionConfig;
   onDelete: (id: string) => void;
+  onEdit: (connection: ConnectionConfig) => void;
   onTest: (connection: ConnectionConfig) => void;
   onBackup: (connection: ConnectionConfig) => void;
   onRestore: (connection: ConnectionConfig) => void;
@@ -31,6 +33,7 @@ interface ConnectionCardProps {
 export function ConnectionCard({
   connection,
   onDelete,
+  onEdit,
   onTest,
   onBackup,
   onRestore,
@@ -144,6 +147,15 @@ export function ConnectionCard({
           >
             <ArrowRightLeft className="h-4 w-4 mr-1" />
             Migrate
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEdit(connection)}
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            Edit
           </Button>
 
           <Button

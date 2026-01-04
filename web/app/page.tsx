@@ -45,6 +45,8 @@ export default function Home() {
   const [connections, setConnections] = useState<ConnectionConfig[]>([]);
   const [activeTab, setActiveTab] = useState("connections");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingConnection, setEditingConnection] =
+    useState<ConnectionConfig | null>(null);
 
   // Backup state
   const [backupConnection, setBackupConnection] =
@@ -75,12 +77,25 @@ export default function Home() {
   }, []);
 
   const handleAddConnection = async (config: ConnectionConfig) => {
-    const updated = [...connections, config];
+    let updated: ConnectionConfig[];
+
+    if (editingConnection) {
+      // Update existing connection
+      updated = connections.map((c) => (c.id === config.id ? config : c));
+      setEditingConnection(null);
+    } else {
+      // Add new connection
+      updated = [...connections, config];
+      setShowAddForm(false);
+    }
+
     setConnections(updated);
     saveConnections(updated);
+  };
+  const handleEditConnection = (connection: ConnectionConfig) => {
+    setEditingConnection(connection);
     setShowAddForm(false);
   };
-
   const handleDeleteConnection = (id: string) => {
     const updated = connections.filter((c) => c.id !== id);
     setConnections(updated);
@@ -209,7 +224,12 @@ export default function Home() {
           <TabsContent value="connections" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Your Connections</h2>
-              <Button onClick={() => setShowAddForm(!showAddForm)}>
+              <Button
+                onClick={() => {
+                  setShowAddForm(!showAddForm);
+                  setEditingConnection(null);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Connection
               </Button>
@@ -222,12 +242,21 @@ export default function Home() {
               />
             )}
 
+            {editingConnection && (
+              <ConnectionForm
+                onSubmit={handleAddConnection}
+                initialData={editingConnection}
+                submitLabel="Update Connection"
+              />
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {connections.map((conn) => (
                 <ConnectionCard
                   key={conn.id}
                   connection={conn}
                   onDelete={handleDeleteConnection}
+                  onEdit={handleEditConnection}
                   onTest={() => {}}
                   onBackup={(c) => {
                     setBackupConnection(c);
