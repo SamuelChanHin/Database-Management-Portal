@@ -22,9 +22,10 @@ import {
 
 interface ConnectionCardProps {
   connection: ConnectionConfig;
+  healthStatus: { ok: boolean; version?: string; latency?: number } | null;
   onDelete: (id: string) => void;
   onEdit: (connection: ConnectionConfig) => void;
-  onTest: (connection: ConnectionConfig) => void;
+  onTest: (result: { ok: boolean; version?: string; latency?: number }) => void;
   onBackup: (connection: ConnectionConfig) => void;
   onRestore: (connection: ConnectionConfig) => void;
   onMigrateFrom: (connection: ConnectionConfig) => void;
@@ -32,6 +33,7 @@ interface ConnectionCardProps {
 
 export function ConnectionCard({
   connection,
+  healthStatus,
   onDelete,
   onEdit,
   onTest,
@@ -39,21 +41,15 @@ export function ConnectionCard({
   onRestore,
   onMigrateFrom,
 }: ConnectionCardProps) {
-  const [health, setHealth] = useState<{
-    ok: boolean;
-    version?: string;
-    latency?: number;
-  } | null>(null);
   const [testing, setTesting] = useState(false);
 
   const handleTest = async () => {
     setTesting(true);
     try {
       const result = await testConnection(connection);
-      setHealth(result);
-      onTest(connection);
+      onTest(result);
     } catch (error) {
-      setHealth({ ok: false });
+      onTest({ ok: false });
     } finally {
       setTesting(false);
     }
@@ -93,10 +89,10 @@ export function ConnectionCard({
             </div>
           </div>
 
-          {health !== null && (
+          {healthStatus !== null && (
             <div
               className={`h-3 w-3 rounded-full ${
-                health.ok ? "bg-green-500" : "bg-red-500"
+                healthStatus.ok ? "bg-green-500" : "bg-red-500"
               }`}
             />
           )}
@@ -104,10 +100,11 @@ export function ConnectionCard({
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {health && health.ok && (
+        {healthStatus && healthStatus.ok && (
           <div className="text-sm text-muted-foreground">
-            <span className="font-medium">Version:</span> {health.version} •
-            <span className="font-medium"> Latency:</span> {health.latency}ms
+            <span className="font-medium">Version:</span> {healthStatus.version}{" "}
+            •<span className="font-medium"> Latency:</span>{" "}
+            {healthStatus.latency}ms
           </div>
         )}
 

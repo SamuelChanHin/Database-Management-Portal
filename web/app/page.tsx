@@ -31,6 +31,7 @@ import {
   migrateDatabase,
   exportConnections,
   importConnections,
+  testConnection,
 } from "@/lib/api";
 import {
   Database,
@@ -39,6 +40,7 @@ import {
   FileJson,
   Plus,
   Loader2,
+  TestTube2,
 } from "lucide-react";
 
 export default function Home() {
@@ -47,6 +49,10 @@ export default function Home() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingConnection, setEditingConnection] =
     useState<ConnectionConfig | null>(null);
+  const [healthStatus, setHealthStatus] = useState<
+    Record<string, { ok: boolean; version?: string; latency?: number } | null>
+  >({});
+  const [testingAll, setTestingAll] = useState(false);
 
   // Backup state
   const [backupConnection, setBackupConnection] =
@@ -100,6 +106,38 @@ export default function Home() {
     const updated = connections.filter((c) => c.id !== id);
     setConnections(updated);
     saveConnections(updated);
+  };
+
+  const handleTestAll = async () => {
+    setTestingAll(true);
+    const results: Record<
+      string,
+      { ok: boolean; version?: string; latency?: number }
+    > = {};
+
+    for (const conn of connections) {
+      try {
+        const result = await testConnection(conn);
+        results[conn.id!] = result;
+      } catch (error) {
+        results[conn.id!] = { ok: false };
+      }
+    }
+
+    setHealthStatus(results);
+    setTestingAll(false);
+
+    const successful = Object.values(results).filter((r) => r.ok).length;
+    alert(
+      `Test completed: ${successful}/${connections.length} connections successful`
+    );
+  };
+
+  const handleTestSingle = (
+    connectionId: string,
+    result: { ok: boolean; version?: string; latency?: number }
+  ) => {
+    setHealthStatus((prev) => ({ ...prev, [connectionId]: result }));
   };
 
   const handleBackup = async () => {
@@ -224,15 +262,31 @@ export default function Home() {
           <TabsContent value="connections" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Your Connections</h2>
-              <Button
-                onClick={() => {
-                  setShowAddForm(!showAddForm);
-                  setEditingConnection(null);
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Connection
-              </Button>
+              <div className="flex gap-2">
+                {connections.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleTestAll}
+                    disabled={testingAll}
+                  >
+                    {testingAll ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <TestTube2 className="h-4 w-4 mr-2" />
+                    )}
+                    Test All
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setShowAddForm(!showAddForm);
+                    setEditingConnection(null);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Connection
+                </Button>
+              </div>
             </div>
 
             {showAddForm && (
@@ -255,9 +309,10 @@ export default function Home() {
                 <ConnectionCard
                   key={conn.id}
                   connection={conn}
+                  healthStatus={healthStatus[conn.id!] || null}
                   onDelete={handleDeleteConnection}
                   onEdit={handleEditConnection}
-                  onTest={() => {}}
+                  onTest={(result) => handleTestSingle(conn.id!, result)}
                   onBackup={(c) => {
                     setBackupConnection(c);
                     setActiveTab("backup");
