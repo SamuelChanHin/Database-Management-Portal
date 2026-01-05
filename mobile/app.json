@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "DB Portal Mobile",
+    "slug": "db-portal-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dbportal.mobile"
+    },
+    "android": {
+      "package": "com.dbportal.mobile"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-file-system",
+      "expo-document-picker",
+      "expo-sqlite",
+      "expo-asset"
+    ]
+  }
+}
